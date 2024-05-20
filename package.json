@@ -1,0 +1,22 @@
+{
+  "name": "files",
+  "version": "1.0.0",
+  "main": "step1.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/Mrutledg02/The-cat-Command.git"
+  },
+  "author": "megan",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Mrutledg02/The-cat-Command/issues"
+  },
+  "homepage": "https://github.com/Mrutledg02/The-cat-Command#readme",
+  "description": "",
+  "dependencies": {
+    "axios": "^1.7.0"
+  }
+}
