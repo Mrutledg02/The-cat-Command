@@ -1,75 +1,91 @@
 const fs = require('fs');
 const axios = require('axios');
 
-// Function to read file
-async function cat(path) {
-    try {
-        const data = await fs.promises.readFile(path, 'utf-8');
-        console.log(data);
-    } catch (err) {
-        console.error(`Couldn't read ${path}:`);
-        console.error(err.message);
-    }
+// Function to read file and return content as a promise
+function readFile(path) {
+  return new Promise((resolve, reject) => {
+    fs.readFile(path, 'utf8', (err, data) => {
+      if (err) {
+        reject(`Error reading file ${path}: ${err}`);
+      } else {
+        resolve(data);
+      }
+    });
+  });
 }
 
-// Function to read file and append to another file
-async function catAppend(inputPath, outputPath) {
-    try {
-        const data = await fs.promises.readFile(inputPath, 'utf-8');
-        await fs.promises.appendFile(outputPath, data);
-        console.log(`Data appended to ${outputPath}`);
-    } catch (err) {
-        console.error(`Error appending to ${outputPath}:`);
-        console.error(err.message);
-    }
+// Function to fetch URL content and return as a promise
+async function fetchUrl(url) {
+  try {
+    const response = await axios.get(url);
+    return response.data;
+  } catch (err) {
+    throw new Error(`Error fetching URL ${url}: ${err}`);
+  }
 }
 
-// Function to fetch content from a URL
-async function webCat(url) {
-    try {
-        const response = await axios.get(url);
-        console.log(response.data);
-    } catch (err) {
-        console.error(`Couldn't fetch ${url}:`);
-        console.error(err.message);
-    }
+// Function to write content to a file (append mode)
+function appendToFile(outputPath, data) {
+  return new Promise((resolve, reject) => {
+    fs.appendFile(outputPath, data, err => {
+      if (err) {
+        reject(`Couldn't write to ${outputPath}: ${err}`);
+      } else {
+        resolve(`Data written to ${outputPath}`);
+      }
+    });
+  });
 }
 
-// Function to read from URL and append to file
-async function webCatAppend(url, outputPath) {
+// Main function to process input paths or URLs and write to output file
+async function processInputs(inputs, outputPath) {
+  for (const input of inputs) {
     try {
-        const response = await axios.get(url);
-        await fs.promises.appendFile(outputPath, response.data);
-        console.log(`Data appended to ${outputPath}`);
+      let data;
+      if (input.startsWith('http://') || input.startsWith('https://')) {
+        data = await fetchUrl(input);
+      } else {
+        data = await readFile(input);
+      }
+      await appendToFile(outputPath, data);
+      console.log(`Data from ${input} written to ${outputPath}`);
     } catch (err) {
-        console.error(`Error fetching or appending to ${outputPath}:`);
-        console.error(err.message);
+      console.error(err);
     }
+  }
 }
 
-// Main function to handle command line arguments
+// Main function to handle command line arguments and initiate processing
 async function main() {
-    const args = process.argv.slice(2);
-    if (args.includes('--out')) {
-        const outIndex = args.indexOf('--out');
-        const outputPath = args[outIndex + 1];
-        for (let i = 0; i < outIndex; i++) {
-            const inputPathOrUrl = args[i];
-            if (inputPathOrUrl.startsWith('http://') || inputPathOrUrl.startsWith('https://')) {
-                await webCatAppend(inputPathOrUrl, outputPath);
-            } else {
-                await catAppend(inputPathOrUrl, outputPath);
-            }
+  const args = process.argv.slice(2);
+  if (args.length < 1) {
+    console.error('Usage: node script.js [--out output-filename.txt] readfile-or-url [readfile-or-url ...]');
+    return;
+  }
+
+  let outputPath = null;
+  if (args[0] === '--out' && args.length >= 3) {
+    outputPath = args[1];
+    args.splice(0, 2);
+  }
+
+  if (outputPath) {
+    await processInputs(args, outputPath);
+  } else {
+    for (const input of args) {
+      try {
+        if (input.startsWith('http://') || input.startsWith('https://')) {
+          const data = await fetchUrl(input);
+          console.log(data);
+        } else {
+          const data = await readFile(input);
+          console.log(data);
         }
-    } else {
-        for (const inputPathOrUrl of args) {
-            if (inputPathOrUrl.startsWith('http://') || inputPathOrUrl.startsWith('https://')) {
-                await webCat(inputPathOrUrl);
-            } else {
-                await cat(inputPathOrUrl);
-            }
-        }
+      } catch (err) {
+        console.error(err);
+      }
     }
+  }
 }
 
 main();
